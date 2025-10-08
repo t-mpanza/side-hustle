@@ -105,15 +105,15 @@ function TrendsModal({ onClose }: TrendsModalProps) {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Sales Trends</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Sales Trends</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <X className="w-6 h-6 text-gray-500" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />
           </button>
         </div>
 
@@ -122,30 +122,30 @@ function TrendsModal({ onClose }: TrendsModalProps) {
         ) : (
           <div className="space-y-4">
             {trendsData.map((trend) => (
-              <div key={trend.period} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h3 className="font-semibold text-gray-900 mb-3">{trend.period}</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+              <div key={trend.period} className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
+                <h3 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">{trend.period}</h3>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                   <div>
                     <div className="text-gray-600 mb-1">Sales Count</div>
-                    <div className="text-lg font-semibold text-blue-600">
+                    <div className="text-base sm:text-lg font-semibold text-blue-600">
                       {trend.salesCount}
                     </div>
                   </div>
                   <div>
                     <div className="text-gray-600 mb-1">Units Sold</div>
-                    <div className="text-lg font-semibold text-purple-600">
+                    <div className="text-base sm:text-lg font-semibold text-purple-600">
                       {trend.unitsSold}
                     </div>
                   </div>
                   <div>
                     <div className="text-gray-600 mb-1">Revenue</div>
-                    <div className="text-lg font-semibold text-green-600">
+                    <div className="text-base sm:text-lg font-semibold text-green-600">
                       R{trend.revenue.toFixed(2)}
                     </div>
                   </div>
                   <div>
                     <div className="text-gray-600 mb-1">Profit</div>
-                    <div className={`text-lg font-semibold ${trend.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`text-base sm:text-lg font-semibold ${trend.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       R{trend.profit.toFixed(2)}
                     </div>
                   </div>
@@ -452,48 +452,48 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Inventory Tracker</h1>
-          <p className="text-gray-600">Manage your products, stock, and sales</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 pb-20 sm:pb-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Inventory Tracker</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage your products, stock, and sales</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Total Revenue</span>
-              <TrendingUp className="w-5 h-5 text-green-600" />
+              <span className="text-xs sm:text-sm font-medium text-gray-600">Total Revenue</span>
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
             </div>
-            <div className="text-2xl font-bold text-gray-900">
+            <div className="text-lg sm:text-2xl font-bold text-gray-900">
               R{filteredMetrics.totalRevenue.toFixed(2)}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Total Profit</span>
-              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <span className="text-xs sm:text-sm font-medium text-gray-600">Total Profit</span>
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
             </div>
-            <div className="text-2xl font-bold text-gray-900">
+            <div className="text-lg sm:text-2xl font-bold text-gray-900">
               R{filteredMetrics.totalProfit.toFixed(2)}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 sm:col-span-2 lg:col-span-1">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Products</span>
-              <Package className="w-5 h-5 text-orange-600" />
+              <span className="text-xs sm:text-sm font-medium text-gray-600">Products</span>
+              <Package className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
             </div>
-            <div className="text-2xl font-bold text-gray-900">{filteredMetrics.totalProducts}</div>
+            <div className="text-lg sm:text-2xl font-bold text-gray-900">{filteredMetrics.totalProducts}</div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2 sm:pb-0">
             <button
               onClick={() => setDateFilter('today')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-3 py-2 sm:px-4 rounded-lg font-medium transition-colors text-sm sm:text-base whitespace-nowrap ${
                 dateFilter === 'today'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -503,7 +503,7 @@ export function Dashboard() {
             </button>
             <button
               onClick={() => setDateFilter('yesterday')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-3 py-2 sm:px-4 rounded-lg font-medium transition-colors text-sm sm:text-base whitespace-nowrap ${
                 dateFilter === 'yesterday'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -513,7 +513,7 @@ export function Dashboard() {
             </button>
             <button
               onClick={() => setDateFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-3 py-2 sm:px-4 rounded-lg font-medium transition-colors text-sm sm:text-base whitespace-nowrap ${
                 dateFilter === 'all'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -524,14 +524,14 @@ export function Dashboard() {
           </div>
           <button
             onClick={() => setShowTrendsModal(true)}
-            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2 shadow-sm"
+            className="bg-purple-600 text-white px-4 py-2 sm:px-6 rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center gap-2 shadow-sm text-sm sm:text-base w-full sm:w-auto"
           >
-            <TrendingUp className="w-5 h-5" />
+            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
             Trends
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {filteredProducts.map((product) => (
             <ProductCard
               key={product.id}
@@ -585,21 +585,23 @@ export function Dashboard() {
         )}
       </div>
 
-      {/* Sticky Floating Action Buttons */}
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 flex gap-4">
+      {/* Sticky Floating Action Buttons - Mobile First */}
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40 flex gap-2 sm:gap-4 px-4 w-full max-w-sm sm:max-w-none sm:w-auto">
         <button
           onClick={() => setShowRecordSale(true)}
-          className="bg-orange-600 text-white px-6 py-3 rounded-full hover:bg-orange-700 transition-colors font-medium flex items-center gap-2 shadow-lg hover:shadow-xl"
+          className="flex-1 sm:flex-none bg-orange-600 text-white px-3 py-2 sm:px-6 sm:py-3 rounded-full hover:bg-orange-700 transition-colors font-medium flex items-center justify-center gap-1 sm:gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
         >
-          <ShoppingCart className="w-5 h-5" />
-          Record Sale
+          <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="hidden xs:inline">Record Sale</span>
+          <span className="xs:hidden">Sale</span>
         </button>
         <button
           onClick={() => setShowRestock(true)}
-          className="bg-green-600 text-white px-6 py-3 rounded-full hover:bg-green-700 transition-colors font-medium flex items-center gap-2 shadow-lg hover:shadow-xl"
+          className="flex-1 sm:flex-none bg-green-600 text-white px-3 py-2 sm:px-6 sm:py-3 rounded-full hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-1 sm:gap-2 shadow-lg hover:shadow-xl text-sm sm:text-base"
         >
-          <Package className="w-5 h-5" />
-          Restock
+          <Package className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="hidden xs:inline">Restock</span>
+          <span className="xs:hidden">Stock</span>
         </button>
       </div>
 

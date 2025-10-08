@@ -149,9 +149,9 @@ export function RecordSale({ products, onSuccess, onCancel }: RecordSaleProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 my-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Record Sale</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-4 sm:p-6 my-4 sm:my-8 max-h-[95vh] overflow-y-auto">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Record Sale</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-3">
@@ -219,25 +219,25 @@ export function RecordSale({ products, onSuccess, onCancel }: RecordSaleProps) {
                       <label className="block text-xs font-medium text-gray-600 mb-1">
                         Quantity
                       </label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2">
                         <button
                           type="button"
                           onClick={() => decrementQuantity(item.id)}
-                          className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors flex items-center justify-center"
+                          className="bg-red-500 hover:bg-red-600 text-white p-1.5 sm:p-2 rounded-lg transition-colors flex items-center justify-center min-w-[36px] sm:min-w-[40px]"
                           title="Decrease quantity"
                         >
-                          <Minus className="w-4 h-4" />
+                          <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
-                        <div className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-center font-medium">
+                        <div className="flex-1 px-2 sm:px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs sm:text-sm text-center font-medium min-h-[36px] sm:min-h-[40px] flex items-center justify-center">
                           {item.quantity}
                         </div>
                         <button
                           type="button"
                           onClick={() => incrementQuantity(item.id)}
-                          className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors flex items-center justify-center"
+                          className="bg-green-500 hover:bg-green-600 text-white p-1.5 sm:p-2 rounded-lg transition-colors flex items-center justify-center min-w-[36px] sm:min-w-[40px]"
                           title="Increase quantity"
                         >
-                          <Plus className="w-4 h-4" />
+                          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                       </div>
                     </div>
