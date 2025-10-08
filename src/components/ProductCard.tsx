@@ -5,9 +5,10 @@ interface ProductCardProps {
   product: Product;
   onEdit: (product: Product) => void;
   onView?: (product: Product) => void;
+  showPeriodData?: boolean;
 }
 
-export function ProductCard({ product, onEdit, onView }: ProductCardProps) {
+export function ProductCard({ product, onEdit, onView, showPeriodData = false }: ProductCardProps) {
 
   const costPerUnit = product.cost_per_batch / product.units_per_batch;
   const profitPerUnit = product.unit_selling_price - costPerUnit;
@@ -61,7 +62,7 @@ export function ProductCard({ product, onEdit, onView }: ProductCardProps) {
 
         <div className="pt-1 sm:pt-2 text-xs text-gray-500">
           <div className="flex justify-between">
-            <span>Units sold</span>
+            <span>{showPeriodData ? 'Units sold (period)' : 'Units sold'}</span>
             <span className="font-medium">{product.total_units_sold}</span>
           </div>
         </div>

@@ -53,10 +53,26 @@ function TrendsModal({ onClose }: TrendsModalProps) {
         last14Days.setDate(last14Days.getDate() - 14);
 
         const periods = [
-          { name: 'Today', start: today, end: today },
-          { name: 'Yesterday', start: yesterday, end: yesterday },
-          { name: 'Last 7 Days', start: last7Days, end: today },
-          { name: 'Last 14 Days', start: last14Days, end: today },
+          { 
+            name: 'Today', 
+            start: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+            end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59)
+          },
+          { 
+            name: 'Yesterday', 
+            start: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()),
+            end: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59)
+          },
+          { 
+            name: 'Last 7 Days', 
+            start: new Date(last7Days.getFullYear(), last7Days.getMonth(), last7Days.getDate()),
+            end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59)
+          },
+          { 
+            name: 'Last 14 Days', 
+            start: new Date(last14Days.getFullYear(), last14Days.getMonth(), last14Days.getDate()),
+            end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59)
+          },
         ];
 
         const trends = await Promise.all(
@@ -295,14 +311,34 @@ export function Dashboard() {
   const isToday = (date: string) => {
     const today = new Date();
     const saleDate = new Date(date);
-    return saleDate.toDateString() === today.toDateString();
+    
+    // Normalize both dates to start of day for comparison
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const saleDateStart = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate());
+    
+    return saleDateStart.getTime() === todayStart.getTime();
   };
 
   const isYesterday = (date: string) => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const saleDate = new Date(date);
-    return saleDate.toDateString() === yesterday.toDateString();
+    
+    // Normalize both dates to start of day for comparison
+    const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+    const saleDateStart = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate());
+    
+    const isMatch = saleDateStart.getTime() === yesterdayStart.getTime();
+    
+    if (isMatch) {
+      console.log('Yesterday match found:', {
+        saleDate: date,
+        saleDateStart: saleDateStart.toISOString(),
+        yesterdayStart: yesterdayStart.toISOString()
+      });
+    }
+    
+    return isMatch;
   };
 
   const filterSalesByDate = (sales: RecentSale[], filter: 'today' | 'yesterday' | 'all') => {
@@ -334,13 +370,14 @@ export function Dashboard() {
       let endDate: Date;
 
       if (filter === 'today') {
-        startDate = today;
-        endDate = today;
+        startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
       } else {
-        startDate = yesterday;
-        endDate = yesterday;
+        startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+        endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
       }
 
+      // Format dates for database query (YYYY-MM-DD format)
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];
 
@@ -380,17 +417,17 @@ export function Dashboard() {
           // Get sales for this product in the filtered period
           const productSales = saleItemsData?.filter(item => item.product_id === product.id) || [];
           const unitsSoldInPeriod = productSales.reduce((sum, sale) => sum + sale.quantity, 0);
-          
-          // Get purchases for this product in the filtered period
-          const productPurchases = purchasesData?.filter(purchase => purchase.product_id === product.id) || [];
-          const unitsPurchasedInPeriod = productPurchases.reduce((sum, purchase) => {
-            // Calculate units from purchases (we need to get the units_added from stock_purchases)
-            return sum; // We'll need to fetch this separately
-          }, 0);
+
+          console.log(`Product ${product.name}:`, {
+            originalUnitsSold: product.total_units_sold,
+            periodUnitsSold: unitsSoldInPeriod,
+            salesInPeriod: productSales.length,
+            filter: filter
+          });
 
           return {
             ...product,
-            total_units_sold: unitsSoldInPeriod, // Override with filtered data
+            total_units_sold: unitsSoldInPeriod, // Override with filtered data for this period
           };
         })
       );
@@ -403,7 +440,13 @@ export function Dashboard() {
 
   // Update filtered sales and metrics when date filter changes
   useEffect(() => {
-    setFilteredSales(filterSalesByDate(recentSales, dateFilter));
+    console.log('Date filter changed to:', dateFilter);
+    console.log('Recent sales count:', recentSales.length);
+    
+    const filtered = filterSalesByDate(recentSales, dateFilter);
+    console.log('Filtered sales count:', filtered.length);
+    
+    setFilteredSales(filtered);
     fetchFilteredData(dateFilter);
   }, [recentSales, dateFilter, allMetrics, products]);
 
@@ -538,6 +581,7 @@ export function Dashboard() {
               product={product}
               onEdit={handleEditProduct}
               onView={handleViewProduct}
+              showPeriodData={dateFilter !== 'all'}
             />
           ))}
         </div>
