@@ -25,6 +25,178 @@ interface RecentSale {
   }[];
 }
 
+<<<<<<< Updated upstream
+=======
+interface TrendsModalProps {
+  onClose: () => void;
+}
+
+interface TrendData {
+  period: string;
+  salesCount: number;
+  revenue: number;
+  profit: number;
+  unitsSold: number;
+}
+
+function TrendsModal({ onClose }: TrendsModalProps) {
+  const [trendsData, setTrendsData] = useState<TrendData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTrendsData = async () => {
+      try {
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const last7Days = new Date();
+        last7Days.setDate(last7Days.getDate() - 7);
+        const last14Days = new Date();
+        last14Days.setDate(last14Days.getDate() - 14);
+
+        // Convert to Johannesburg timezone
+        const getJohannesburgDate = (date: Date) => {
+          return new Date(date.toLocaleString("en-US", {timeZone: "Africa/Johannesburg"}));
+        };
+
+        const todayJHB = getJohannesburgDate(today);
+        const yesterdayJHB = getJohannesburgDate(yesterday);
+        const last7DaysJHB = getJohannesburgDate(last7Days);
+        const last14DaysJHB = getJohannesburgDate(last14Days);
+
+        const periods = [
+          { 
+            name: 'Today', 
+            start: new Date(todayJHB.getFullYear(), todayJHB.getMonth(), todayJHB.getDate()),
+            end: new Date(todayJHB.getFullYear(), todayJHB.getMonth(), todayJHB.getDate(), 23, 59, 59)
+          },
+          { 
+            name: 'Yesterday', 
+            start: new Date(yesterdayJHB.getFullYear(), yesterdayJHB.getMonth(), yesterdayJHB.getDate()),
+            end: new Date(yesterdayJHB.getFullYear(), yesterdayJHB.getMonth(), yesterdayJHB.getDate(), 23, 59, 59)
+          },
+          { 
+            name: 'Last 7 Days', 
+            start: new Date(last7DaysJHB.getFullYear(), last7DaysJHB.getMonth(), last7DaysJHB.getDate()),
+            end: new Date(todayJHB.getFullYear(), todayJHB.getMonth(), todayJHB.getDate(), 23, 59, 59)
+          },
+          { 
+            name: 'Last 14 Days', 
+            start: new Date(last14DaysJHB.getFullYear(), last14DaysJHB.getMonth(), last14DaysJHB.getDate()),
+            end: new Date(todayJHB.getFullYear(), todayJHB.getMonth(), todayJHB.getDate(), 23, 59, 59)
+          },
+        ];
+
+        const trends = await Promise.all(
+          periods.map(async (period) => {
+            const { data: salesData } = await supabase
+              .from('sales')
+              .select('id, total_amount, sale_date')
+              .gte('sale_date', period.start.toISOString().split('T')[0])
+              .lte('sale_date', period.end.toISOString().split('T')[0]);
+
+            const { data: saleItemsData } = await supabase
+              .from('sale_items')
+              .select('product_id, quantity, unit_price, subtotal')
+              .in('sale_id', salesData?.map(s => s.id) || []);
+
+            const { data: purchasesData } = await supabase
+              .from('stock_purchases')
+              .select('product_id, total_cost')
+              .gte('purchase_date', period.start.toISOString().split('T')[0])
+              .lte('purchase_date', period.end.toISOString().split('T')[0]);
+
+            const revenue = salesData?.reduce((sum, sale) => sum + parseFloat(sale.total_amount), 0) || 0;
+            const cost = purchasesData?.reduce((sum, purchase) => sum + parseFloat(purchase.total_cost), 0) || 0;
+            const profit = revenue - cost;
+            const unitsSold = saleItemsData?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+
+            return {
+              period: period.name,
+              salesCount: salesData?.length || 0,
+              revenue,
+              profit,
+              unitsSold,
+            };
+          })
+        );
+
+        setTrendsData(trends);
+      } catch (error) {
+        console.error('Error fetching trends data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrendsData();
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Sales Trends</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8 text-gray-600">Loading trends...</div>
+        ) : (
+          <div className="space-y-4">
+            {trendsData.map((trend) => (
+              <div key={trend.period} className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
+                <h3 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">{trend.period}</h3>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                  <div>
+                    <div className="text-gray-600 mb-1">Sales Count</div>
+                    <div className="text-base sm:text-lg font-semibold text-blue-600">
+                      {trend.salesCount}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600 mb-1">Units Sold</div>
+                    <div className="text-base sm:text-lg font-semibold text-purple-600">
+                      {trend.unitsSold}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600 mb-1">Revenue</div>
+                    <div className="text-base sm:text-lg font-semibold text-green-600">
+                      R{trend.revenue.toFixed(2)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600 mb-1">Profit</div>
+                    <div className={`text-base sm:text-lg font-semibold ${trend.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      R{trend.profit.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+>>>>>>> Stashed changes
 export function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetrics>({
@@ -135,6 +307,178 @@ export function Dashboard() {
     }
   };
 
+<<<<<<< Updated upstream
+=======
+  // Date filtering helper functions - using Africa/Johannesburg timezone
+  const getJohannesburgDate = (date: Date) => {
+    return new Date(date.toLocaleString("en-US", {timeZone: "Africa/Johannesburg"}));
+  };
+
+  const isToday = (date: string) => {
+    const today = new Date();
+    const saleDate = new Date(date);
+    
+    // Convert to Johannesburg timezone
+    const todayJHB = getJohannesburgDate(today);
+    const saleDateJHB = getJohannesburgDate(saleDate);
+    
+    // Normalize both dates to start of day for comparison
+    const todayStart = new Date(todayJHB.getFullYear(), todayJHB.getMonth(), todayJHB.getDate());
+    const saleDateStart = new Date(saleDateJHB.getFullYear(), saleDateJHB.getMonth(), saleDateJHB.getDate());
+    
+    return saleDateStart.getTime() === todayStart.getTime();
+  };
+
+  const isYesterday = (date: string) => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const saleDate = new Date(date);
+    
+    // Convert to Johannesburg timezone
+    const yesterdayJHB = getJohannesburgDate(yesterday);
+    const saleDateJHB = getJohannesburgDate(saleDate);
+    
+    // Normalize both dates to start of day for comparison
+    const yesterdayStart = new Date(yesterdayJHB.getFullYear(), yesterdayJHB.getMonth(), yesterdayJHB.getDate());
+    const saleDateStart = new Date(saleDateJHB.getFullYear(), saleDateJHB.getMonth(), saleDateJHB.getDate());
+    
+    const isMatch = saleDateStart.getTime() === yesterdayStart.getTime();
+    
+    if (isMatch) {
+      console.log('Yesterday match found (JHB timezone):', {
+        saleDate: date,
+        saleDateJHB: saleDateJHB.toISOString(),
+        yesterdayJHB: yesterdayJHB.toISOString(),
+        saleDateStart: saleDateStart.toISOString(),
+        yesterdayStart: yesterdayStart.toISOString()
+      });
+    }
+    
+    return isMatch;
+  };
+
+  const filterSalesByDate = (sales: RecentSale[], filter: 'today' | 'yesterday' | 'all') => {
+    switch (filter) {
+      case 'today':
+        return sales.filter(sale => isToday(sale.sale_date));
+      case 'yesterday':
+        return sales.filter(sale => isYesterday(sale.sale_date));
+      case 'all':
+      default:
+        return sales;
+    }
+  };
+
+  // Fetch filtered metrics and products based on date filter
+  const fetchFilteredData = async (filter: 'today' | 'yesterday' | 'all') => {
+    if (filter === 'all') {
+      setFilteredMetrics(allMetrics);
+      setFilteredProducts(products);
+      return;
+    }
+
+    try {
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      // Convert to Johannesburg timezone for accurate date calculations
+      const todayJHB = getJohannesburgDate(today);
+      const yesterdayJHB = getJohannesburgDate(yesterday);
+
+      let startDate: Date;
+      let endDate: Date;
+
+      if (filter === 'today') {
+        startDate = new Date(todayJHB.getFullYear(), todayJHB.getMonth(), todayJHB.getDate());
+        endDate = new Date(todayJHB.getFullYear(), todayJHB.getMonth(), todayJHB.getDate(), 23, 59, 59);
+      } else {
+        startDate = new Date(yesterdayJHB.getFullYear(), yesterdayJHB.getMonth(), yesterdayJHB.getDate());
+        endDate = new Date(yesterdayJHB.getFullYear(), yesterdayJHB.getMonth(), yesterdayJHB.getDate(), 23, 59, 59);
+      }
+
+      // Format dates for database query (YYYY-MM-DD format)
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = endDate.toISOString().split('T')[0];
+
+      console.log('Database query dates (JHB timezone):', {
+        filter,
+        startDateStr,
+        endDateStr,
+        todayJHB: todayJHB.toISOString(),
+        yesterdayJHB: yesterdayJHB.toISOString()
+      });
+
+      // Fetch sales data for the filtered period
+      const { data: salesData } = await supabase
+        .from('sales')
+        .select('id, total_amount, sale_date')
+        .gte('sale_date', startDateStr)
+        .lte('sale_date', endDateStr);
+
+      // Fetch sale items for revenue calculation
+      const { data: saleItemsData } = await supabase
+        .from('sale_items')
+        .select('product_id, quantity, unit_price, subtotal')
+        .in('sale_id', salesData?.map(s => s.id) || []);
+
+      // Fetch purchases for cost calculation
+      const { data: purchasesData } = await supabase
+        .from('stock_purchases')
+        .select('product_id, total_cost')
+        .gte('purchase_date', startDateStr)
+        .lte('purchase_date', endDateStr);
+
+      const filteredRevenue = salesData?.reduce((sum, sale) => sum + parseFloat(sale.total_amount), 0) || 0;
+      const filteredCost = purchasesData?.reduce((sum, purchase) => sum + parseFloat(purchase.total_cost), 0) || 0;
+      const filteredProfit = filteredRevenue - filteredCost;
+
+      setFilteredMetrics({
+        totalRevenue: filteredRevenue,
+        totalProfit: filteredProfit,
+        totalProducts: allMetrics.totalProducts, // Product count doesn't change with date filter
+      });
+
+      // Update products with filtered sales data
+      const updatedProducts = await Promise.all(
+        products.map(async (product) => {
+          // Get sales for this product in the filtered period
+          const productSales = saleItemsData?.filter(item => item.product_id === product.id) || [];
+          const unitsSoldInPeriod = productSales.reduce((sum, sale) => sum + sale.quantity, 0);
+
+          console.log(`Product ${product.name}:`, {
+            originalUnitsSold: product.total_units_sold,
+            periodUnitsSold: unitsSoldInPeriod,
+            salesInPeriod: productSales.length,
+            filter: filter
+          });
+
+          return {
+            ...product,
+            total_units_sold: unitsSoldInPeriod, // Override with filtered data for this period
+          };
+        })
+      );
+
+      setFilteredProducts(updatedProducts);
+    } catch (error) {
+      console.error('Error fetching filtered data:', error);
+    }
+  };
+
+  // Update filtered sales and metrics when date filter changes
+  useEffect(() => {
+    console.log('Date filter changed to:', dateFilter);
+    console.log('Recent sales count:', recentSales.length);
+    
+    const filtered = filterSalesByDate(recentSales, dateFilter);
+    console.log('Filtered sales count:', filtered.length);
+    
+    setFilteredSales(filtered);
+    fetchFilteredData(dateFilter);
+  }, [recentSales, dateFilter, allMetrics, products]);
+
+>>>>>>> Stashed changes
   useEffect(() => {
     fetchData();
   }, []);
@@ -271,6 +615,7 @@ export function Dashboard() {
                           year: 'numeric',
                           hour: '2-digit',
                           minute: '2-digit',
+                          timeZone: 'Africa/Johannesburg'
                         })}
                       </span>
                     </div>

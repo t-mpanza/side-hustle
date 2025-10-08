@@ -221,6 +221,7 @@ export function ProductView({ product, onClose }: ProductViewProps) {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric',
+                            timeZone: 'Africa/Johannesburg'
                           })}
                         </div>
                         {purchase.notes && (
@@ -273,6 +274,7 @@ export function ProductView({ product, onClose }: ProductViewProps) {
                             year: 'numeric',
                             hour: '2-digit',
                             minute: '2-digit',
+                            timeZone: 'Africa/Johannesburg'
                           })}
                         </div>
                       </div>
