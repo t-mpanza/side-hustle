@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart, Plus, Trash2 } from 'lucide-react';
+import { ShoppingCart, Plus, Trash2, Minus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Product } from '../types';
 
@@ -40,6 +40,30 @@ export function RecordSale({ products, onSuccess, onCancel }: RecordSaleProps) {
       lineItems.map((item) =>
         item.id === id ? { ...item, [field]: value } : item
       )
+    );
+  };
+
+  const incrementQuantity = (id: string) => {
+    setLineItems(
+      lineItems.map((item) => {
+        if (item.id === id) {
+          const product = products.find((p) => p.id === item.product_id);
+          const maxQuantity = product ? product.current_stock : 999;
+          return { ...item, quantity: Math.min(item.quantity + 1, maxQuantity) };
+        }
+        return item;
+      })
+    );
+  };
+
+  const decrementQuantity = (id: string) => {
+    setLineItems(
+      lineItems.map((item) => {
+        if (item.id === id) {
+          return { ...item, quantity: Math.max(item.quantity - 1, 1) };
+        }
+        return item;
+      })
     );
   };
 
@@ -195,16 +219,27 @@ export function RecordSale({ products, onSuccess, onCancel }: RecordSaleProps) {
                       <label className="block text-xs font-medium text-gray-600 mb-1">
                         Quantity
                       </label>
-                      <input
-                        type="number"
-                        min="1"
-                        required
-                        value={item.quantity}
-                        onChange={(e) =>
-                          updateLineItem(item.id, 'quantity', parseInt(e.target.value) || 1)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-                      />
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => decrementQuantity(item.id)}
+                          className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors flex items-center justify-center"
+                          title="Decrease quantity"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <div className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-center font-medium">
+                          {item.quantity}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => incrementQuantity(item.id)}
+                          className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg transition-colors flex items-center justify-center"
+                          title="Increase quantity"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
