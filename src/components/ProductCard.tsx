@@ -6,9 +6,10 @@ interface ProductCardProps {
   onEdit: (product: Product) => void;
   onView?: (product: Product) => void;
   showPeriodData?: boolean;
+  revenue?: number;
 }
 
-export function ProductCard({ product, onEdit, onView, showPeriodData = false }: ProductCardProps) {
+export function ProductCard({ product, onEdit, onView, showPeriodData = false, revenue = 0 }: ProductCardProps) {
 
   const costPerUnit = product.cost_per_batch / product.units_per_batch;
   const profitPerUnit = product.unit_selling_price - costPerUnit;
@@ -44,19 +45,14 @@ export function ProductCard({ product, onEdit, onView, showPeriodData = false }:
 
       <div className="space-y-2 sm:space-y-3">
         <div className="flex items-center justify-between py-1.5 sm:py-2 border-b border-gray-100">
-          <span className="text-xs sm:text-sm text-gray-600">Selling Price</span>
-          <span className="font-semibold text-gray-900 text-sm sm:text-base">
-            R{product.unit_selling_price.toFixed(2)}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between py-1.5 sm:py-2 border-b border-gray-100">
           <div className="flex items-center gap-1 sm:gap-2 text-gray-600">
             <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="text-xs sm:text-sm">Profit/Unit</span>
+            <span className="text-xs sm:text-sm">
+              {showPeriodData ? 'Revenue (period)' : 'Revenue'}
+            </span>
           </div>
-          <span className={`font-semibold text-sm sm:text-base ${profitPerUnit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            R{profitPerUnit.toFixed(2)}
+          <span className="font-semibold text-green-600 text-sm sm:text-base">
+            R{revenue.toFixed(2)}
           </span>
         </div>
 

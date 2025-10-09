@@ -183,19 +183,19 @@ export function ProductView({ product, onClose }: ProductViewProps) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <ShoppingBag className="w-5 h-5 text-green-600" />
+                  <ShoppingBag className="w-5 h-5 text-red-600" />
                   <h3 className="text-lg font-semibold text-gray-900">Stock Purchases</h3>
                 </div>
                 {stockPurchases.length === 0 ? (
-                  <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-gray-500 text-sm">No stock purchases yet</p>
+                  <div className="text-center py-6 bg-red-50 rounded-lg border border-red-200">
+                    <p className="text-red-500 text-sm">No stock purchases yet</p>
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {stockPurchases.map((purchase) => (
                       <div
                         key={purchase.id}
-                        className="bg-white border border-gray-200 rounded-lg p-3 hover:border-green-300 transition-colors"
+                        className="bg-red-50 border border-red-200 rounded-lg p-3 hover:border-red-300 transition-colors"
                       >
                         <div className="flex justify-between items-start mb-2">
                           <div>
@@ -207,7 +207,7 @@ export function ProductView({ product, onClose }: ProductViewProps) {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-semibold text-green-600">
+                            <div className="font-semibold text-red-600">
                               R{parseFloat(purchase.total_cost).toFixed(2)}
                             </div>
                             <div className="text-xs text-gray-500">
@@ -224,7 +224,7 @@ export function ProductView({ product, onClose }: ProductViewProps) {
                           })}
                         </div>
                         {purchase.notes && (
-                          <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                          <div className="mt-2 text-xs text-gray-600 bg-white p-2 rounded">
                             {purchase.notes}
                           </div>
                         )}
@@ -236,19 +236,19 @@ export function ProductView({ product, onClose }: ProductViewProps) {
 
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <Package className="w-5 h-5 text-orange-600" />
+                  <Package className="w-5 h-5 text-green-600" />
                   <h3 className="text-lg font-semibold text-gray-900">Sales History</h3>
                 </div>
                 {sales.length === 0 ? (
-                  <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-gray-500 text-sm">No sales yet</p>
+                  <div className="text-center py-6 bg-green-50 rounded-lg border border-green-200">
+                    <p className="text-green-500 text-sm">No sales yet</p>
                   </div>
                 ) : (
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {sales.map((sale) => (
                       <div
                         key={sale.id}
-                        className="bg-white border border-gray-200 rounded-lg p-3 hover:border-orange-300 transition-colors"
+                        className="bg-green-50 border border-green-200 rounded-lg p-3 hover:border-green-300 transition-colors"
                       >
                         <div className="flex justify-between items-start mb-2">
                           <div>
@@ -260,7 +260,7 @@ export function ProductView({ product, onClose }: ProductViewProps) {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-semibold text-orange-600">
+                            <div className="font-semibold text-green-600">
                               R{sale.subtotal.toFixed(2)}
                             </div>
                           </div>
