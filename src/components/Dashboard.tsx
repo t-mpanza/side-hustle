@@ -518,7 +518,7 @@ export function Dashboard() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Inventory Tracker</h1>
-          <p className="text-sm sm:text-base text-gray-600">Manage your products, stock, and sales</p>
+          <p className="text-sm sm:text-base text-gray-600">Ezimnandi Kuphela</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
