@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Package, ShoppingCart, Plus, Minus, X } from 'lucide-react';
+import { TrendingUp, Package, ShoppingCart, Plus, Minus, X, Edit } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Product } from '../types';
 import { ProductCard } from './ProductCard';
@@ -8,11 +8,11 @@ import { Restock } from './Restock';
 import { RecordSale } from './RecordSale';
 import { EditProduct } from './EditProduct';
 import { ProductView } from './ProductView';
+import { EditSale } from './EditSale';
 
 interface DashboardMetrics {
-  totalRevenue: number;
-  totalProfit: number;
-  totalProducts: number;
+  revenue: number;
+  unitsSold: number;
 }
 
 interface RecentSale {
@@ -80,8 +80,8 @@ function TrendsModal({ onClose }: TrendsModalProps) {
             const { data: salesData } = await supabase
               .from('sales')
               .select('id, total_amount, sale_date')
-              .gte('sale_date', period.start.toISOString().split('T')[0])
-              .lte('sale_date', period.end.toISOString().split('T')[0]);
+              .gte('sale_date', period.start.toISOString())
+              .lte('sale_date', period.end.toISOString());
 
             const { data: saleItemsData } = await supabase
               .from('sale_items')
@@ -91,8 +91,8 @@ function TrendsModal({ onClose }: TrendsModalProps) {
             const { data: purchasesData } = await supabase
               .from('stock_purchases')
               .select('product_id, total_cost')
-              .gte('purchase_date', period.start.toISOString().split('T')[0])
-              .lte('purchase_date', period.end.toISOString().split('T')[0]);
+              .gte('purchase_date', period.start.toISOString())
+              .lte('purchase_date', period.end.toISOString());
 
             const revenue = salesData?.reduce((sum, sale) => sum + parseFloat(sale.total_amount), 0) || 0;
             const cost = purchasesData?.reduce((sum, purchase) => sum + parseFloat(purchase.total_cost), 0) || 0;
@@ -188,14 +188,12 @@ export function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [allMetrics, setAllMetrics] = useState<DashboardMetrics>({
-    totalRevenue: 0,
-    totalProfit: 0,
-    totalProducts: 0,
+    revenue: 0,
+    unitsSold: 0,
   });
   const [filteredMetrics, setFilteredMetrics] = useState<DashboardMetrics>({
-    totalRevenue: 0,
-    totalProfit: 0,
-    totalProducts: 0,
+    revenue: 0,
+    unitsSold: 0,
   });
   const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
   const [filteredSales, setFilteredSales] = useState<RecentSale[]>([]);
@@ -206,8 +204,12 @@ export function Dashboard() {
   const [showEditProduct, setShowEditProduct] = useState(false);
   const [showProductView, setShowProductView] = useState(false);
   const [showTrendsModal, setShowTrendsModal] = useState(false);
+  const [showEditSale, setShowEditSale] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [dateFilter, setDateFilter] = useState<'today' | 'yesterday' | 'all'>('all');
+  const [selectedSale, setSelectedSale] = useState<RecentSale | null>(null);
+  const [dateFilter, setDateFilter] = useState<'today' | 'yesterday' | 'all'>('today');
+  const [currentPage, setCurrentPage] = useState(1);
+  const salesPerPage = 5;
 
   const fetchData = async () => {
     try {
@@ -251,7 +253,10 @@ export function Dashboard() {
         (sum, item) => sum + item.revenue,
         0
       );
-      const totalCost = Object.values(costByProduct).reduce((sum, cost) => sum + cost, 0);
+      const totalUnitsSold = Object.values(salesByProduct).reduce(
+        (sum, item) => sum + item.quantity,
+        0
+      );
 
       const { data: recentSalesData } = await supabase
         .from('sales')
@@ -294,9 +299,8 @@ export function Dashboard() {
       setRecentSales(salesWithItems);
       setFilteredSales(salesWithItems);
       const allTimeMetrics = {
-        totalRevenue,
-        totalProfit: totalRevenue - totalCost,
-        totalProducts: productsData?.length || 0,
+        revenue: totalRevenue,
+        unitsSold: totalUnitsSold,
       };
       setAllMetrics(allTimeMetrics);
       setFilteredMetrics(allTimeMetrics);
@@ -356,8 +360,18 @@ export function Dashboard() {
   // Fetch filtered metrics and products based on date filter
   const fetchFilteredData = async (filter: 'today' | 'yesterday' | 'all') => {
     if (filter === 'all') {
+      // Calculate revenue for all products
+      const productsWithRevenue = products.map((product) => {
+        const productSales = product.total_units_sold || 0;
+        const revenue = productSales * product.unit_selling_price;
+        return {
+          ...product,
+          revenue: revenue,
+        };
+      });
+      
       setFilteredMetrics(allMetrics);
-      setFilteredProducts(products);
+      setFilteredProducts(productsWithRevenue as any);
       return;
     }
 
@@ -377,38 +391,39 @@ export function Dashboard() {
         endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
       }
 
-      // Format dates for database query (YYYY-MM-DD format)
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
-
-      // Fetch sales data for the filtered period
+      // Fetch sales data for the filtered period using full ISO timestamps
+      console.log(`Fetching sales for ${filter} period:`, {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
+      
       const { data: salesData } = await supabase
         .from('sales')
         .select('id, total_amount, sale_date')
-        .gte('sale_date', startDateStr)
-        .lte('sale_date', endDateStr);
+        .gte('sale_date', startDate.toISOString())
+        .lte('sale_date', endDate.toISOString());
 
       // Fetch sale items for revenue calculation
       const { data: saleItemsData } = await supabase
         .from('sale_items')
         .select('product_id, quantity, unit_price, subtotal')
         .in('sale_id', salesData?.map(s => s.id) || []);
+        
+      console.log(`Found ${salesData?.length || 0} sales and ${saleItemsData?.length || 0} sale items for ${filter} period`);
 
-      // Fetch purchases for cost calculation
+      // Fetch purchases for cost calculation using full ISO timestamps
       const { data: purchasesData } = await supabase
         .from('stock_purchases')
         .select('product_id, total_cost')
-        .gte('purchase_date', startDateStr)
-        .lte('purchase_date', endDateStr);
+        .gte('purchase_date', startDate.toISOString())
+        .lte('purchase_date', endDate.toISOString());
 
       const filteredRevenue = salesData?.reduce((sum, sale) => sum + parseFloat(sale.total_amount), 0) || 0;
-      const filteredCost = purchasesData?.reduce((sum, purchase) => sum + parseFloat(purchase.total_cost), 0) || 0;
-      const filteredProfit = filteredRevenue - filteredCost;
+      const filteredUnitsSold = saleItemsData?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
       setFilteredMetrics({
-        totalRevenue: filteredRevenue,
-        totalProfit: filteredProfit,
-        totalProducts: allMetrics.totalProducts, // Product count doesn't change with date filter
+        revenue: filteredRevenue,
+        unitsSold: filteredUnitsSold,
       });
 
       // Update products with filtered sales data
@@ -417,10 +432,12 @@ export function Dashboard() {
           // Get sales for this product in the filtered period
           const productSales = saleItemsData?.filter(item => item.product_id === product.id) || [];
           const unitsSoldInPeriod = productSales.reduce((sum, sale) => sum + sale.quantity, 0);
+          const revenueInPeriod = productSales.reduce((sum, sale) => sum + parseFloat(sale.subtotal), 0);
 
           console.log(`Product ${product.name}:`, {
             originalUnitsSold: product.total_units_sold,
             periodUnitsSold: unitsSoldInPeriod,
+            revenueInPeriod: revenueInPeriod,
             salesInPeriod: productSales.length,
             filter: filter
           });
@@ -428,6 +445,7 @@ export function Dashboard() {
           return {
             ...product,
             total_units_sold: unitsSoldInPeriod, // Override with filtered data for this period
+            revenue: revenueInPeriod, // Add revenue for this period
           };
         })
       );
@@ -447,6 +465,7 @@ export function Dashboard() {
     console.log('Filtered sales count:', filtered.length);
     
     setFilteredSales(filtered);
+    setCurrentPage(1); // Reset to first page when filter changes
     fetchFilteredData(dateFilter);
   }, [recentSales, dateFilter, allMetrics, products]);
 
@@ -502,33 +521,29 @@ export function Dashboard() {
           <p className="text-sm sm:text-base text-gray-600">Manage your products, stock, and sales</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs sm:text-sm font-medium text-gray-600">Total Revenue</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-600">
+                {dateFilter === 'today' ? 'Revenue Today' : 
+                 dateFilter === 'yesterday' ? 'Revenue Yesterday' : 'Total Revenue'}
+              </span>
               <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
             </div>
             <div className="text-lg sm:text-2xl font-bold text-gray-900">
-              R{filteredMetrics.totalRevenue.toFixed(2)}
+              R{filteredMetrics.revenue.toFixed(2)}
             </div>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs sm:text-sm font-medium text-gray-600">Total Profit</span>
-              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-            </div>
-            <div className="text-lg sm:text-2xl font-bold text-gray-900">
-              R{filteredMetrics.totalProfit.toFixed(2)}
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100 sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs sm:text-sm font-medium text-gray-600">Products</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-600">
+                {dateFilter === 'today' ? 'Units Sold Today' : 
+                 dateFilter === 'yesterday' ? 'Units Sold Yesterday' : 'Total Units Sold'}
+              </span>
               <Package className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
             </div>
-            <div className="text-lg sm:text-2xl font-bold text-gray-900">{filteredMetrics.totalProducts}</div>
+            <div className="text-lg sm:text-2xl font-bold text-gray-900">{filteredMetrics.unitsSold}</div>
           </div>
         </div>
 
@@ -582,6 +597,7 @@ export function Dashboard() {
               onEdit={handleEditProduct}
               onView={handleViewProduct}
               showPeriodData={dateFilter !== 'all'}
+              revenue={(product as any).revenue || 0}
             />
           ))}
         </div>
@@ -589,42 +605,86 @@ export function Dashboard() {
         {filteredSales.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Sales</h2>
+            
+            {/* Paginated Sales */}
             <div className="space-y-3">
-              {filteredSales.map((sale) => (
-                <div
-                  key={sale.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <ShoppingCart className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-500">
-                        {new Date(sale.sale_date).toLocaleDateString('en-ZA', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-700">
-                      {sale.items.map((item, idx) => (
-                        <span key={idx}>
-                          {item.product_name} x{item.quantity}
-                          {idx < sale.items.length - 1 ? ', ' : ''}
+              {filteredSales
+                .slice((currentPage - 1) * salesPerPage, currentPage * salesPerPage)
+                .map((sale) => (
+                  <div
+                    key={sale.id}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <ShoppingCart className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-500">
+                          {new Date(sale.sale_date).toLocaleDateString('en-ZA', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
                         </span>
-                      ))}
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        {sale.items.map((item, idx) => (
+                          <span key={idx}>
+                            {item.product_name} x{item.quantity}
+                            {idx < sale.items.length - 1 ? ', ' : ''}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="ml-4 flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          setSelectedSale(sale);
+                          setShowEditSale(true);
+                        }}
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit Sale"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-green-600">
+                          R{sale.total_amount.toFixed(2)}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="ml-4 text-right">
-                    <div className="text-lg font-bold text-green-600">
-                      R{sale.total_amount.toFixed(2)}
-                    </div>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
+
+            {/* Pagination Controls */}
+            {filteredSales.length > salesPerPage && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600">
+                  Showing {((currentPage - 1) * salesPerPage) + 1} to {Math.min(currentPage * salesPerPage, filteredSales.length)} of {filteredSales.length} sales
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-3 py-1 text-sm text-gray-600">
+                    Page {currentPage} of {Math.ceil(filteredSales.length / salesPerPage)}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredSales.length / salesPerPage), prev + 1))}
+                    disabled={currentPage === Math.ceil(filteredSales.length / salesPerPage)}
+                    className="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -710,6 +770,25 @@ export function Dashboard() {
       {showTrendsModal && (
         <TrendsModal
           onClose={() => setShowTrendsModal(false)}
+        />
+      )}
+
+      {/* Edit Sale Modal */}
+      {showEditSale && selectedSale && (
+        <EditSale
+          saleId={selectedSale.id}
+          saleDate={selectedSale.sale_date}
+          totalAmount={selectedSale.total_amount}
+          items={selectedSale.items}
+          onSuccess={() => {
+            setShowEditSale(false);
+            setSelectedSale(null);
+            fetchData();
+          }}
+          onCancel={() => {
+            setShowEditSale(false);
+            setSelectedSale(null);
+          }}
         />
       )}
     </div>
