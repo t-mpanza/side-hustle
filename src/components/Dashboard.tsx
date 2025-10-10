@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Package, ShoppingCart, Plus, Minus, X, Edit } from 'lucide-react';
+import { TrendingUp, Package, ShoppingCart, Plus, Minus, X, Edit, Bell } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Product } from '../types';
 import { ProductCard } from './ProductCard';
@@ -9,6 +9,7 @@ import { RecordSale } from './RecordSale';
 import { EditProduct } from './EditProduct';
 import { ProductView } from './ProductView';
 import { EditSale } from './EditSale';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface DashboardMetrics {
   revenue: number;
@@ -210,6 +211,9 @@ export function Dashboard() {
   const [dateFilter, setDateFilter] = useState<'today' | 'yesterday' | 'all'>('today');
   const [currentPage, setCurrentPage] = useState(1);
   const salesPerPage = 5;
+  
+  // Notification functionality
+  const { checkLowStock } = useNotifications();
 
   const fetchData = async () => {
     try {
@@ -304,6 +308,17 @@ export function Dashboard() {
       };
       setAllMetrics(allTimeMetrics);
       setFilteredMetrics(allTimeMetrics);
+      
+      // Check for low stock and send notifications
+      const stockItems = (productsData || []).map(product => ({
+        name: product.name,
+        currentStock: product.current_stock,
+        lowStockThreshold: product.name === 'Energy Drinks' ? 5 : 
+                          product.name === 'Pop Shots' ? 12 : 
+                          product.name === 'Ice-Cream' ? 10 : 0
+      }));
+      
+      await checkLowStock(stockItems);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -791,6 +806,7 @@ export function Dashboard() {
           }}
         />
       )}
+
     </div>
   );
 }
