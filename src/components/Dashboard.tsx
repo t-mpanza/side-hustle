@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { TrendingUp, Package, ShoppingCart, Plus, Minus, X, Edit, Bell } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { TrendingUp, Package, ShoppingCart, X, Edit } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Product } from '../types';
 import { ProductCard } from './ProductCard';
@@ -54,23 +54,23 @@ function TrendsModal({ onClose }: TrendsModalProps) {
         last14Days.setDate(last14Days.getDate() - 14);
 
         const periods = [
-          { 
-            name: 'Today', 
+          {
+            name: 'Today',
             start: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
             end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59)
           },
-          { 
-            name: 'Yesterday', 
+          {
+            name: 'Yesterday',
             start: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()),
             end: new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59)
           },
-          { 
-            name: 'Last 7 Days', 
+          {
+            name: 'Last 7 Days',
             start: new Date(last7Days.getFullYear(), last7Days.getMonth(), last7Days.getDate()),
             end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59)
           },
-          { 
-            name: 'Last 14 Days', 
+          {
+            name: 'Last 14 Days',
             start: new Date(last14Days.getFullYear(), last14Days.getMonth(), last14Days.getDate()),
             end: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59)
           },
@@ -185,9 +185,55 @@ function TrendsModal({ onClose }: TrendsModalProps) {
   );
 }
 
+// Date filtering helper functions
+const isToday = (date: string) => {
+  const today = new Date();
+  const saleDate = new Date(date);
+
+  // Normalize both dates to start of day for comparison
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const saleDateStart = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate());
+
+  return saleDateStart.getTime() === todayStart.getTime();
+};
+
+const isYesterday = (date: string) => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const saleDate = new Date(date);
+
+  // Normalize both dates to start of day for comparison
+  const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+  const saleDateStart = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate());
+
+  const isMatch = saleDateStart.getTime() === yesterdayStart.getTime();
+
+  if (isMatch) {
+    console.log('Yesterday match found:', {
+      saleDate: date,
+      saleDateStart: saleDateStart.toISOString(),
+      yesterdayStart: yesterdayStart.toISOString()
+    });
+  }
+
+  return isMatch;
+};
+
+const filterSalesByDate = (sales: RecentSale[], filter: 'today' | 'yesterday' | 'all') => {
+  switch (filter) {
+    case 'today':
+      return sales.filter(sale => isToday(sale.sale_date));
+    case 'yesterday':
+      return sales.filter(sale => isYesterday(sale.sale_date));
+    case 'all':
+    default:
+      return sales;
+  }
+};
+
 export function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<(Product & { revenue?: number })[]>([]);
   const [allMetrics, setAllMetrics] = useState<DashboardMetrics>({
     revenue: 0,
     unitsSold: 0,
@@ -211,11 +257,11 @@ export function Dashboard() {
   const [dateFilter, setDateFilter] = useState<'today' | 'yesterday' | 'all'>('today');
   const [currentPage, setCurrentPage] = useState(1);
   const salesPerPage = 5;
-  
+
   // Notification functionality
   const { checkLowStock } = useNotifications();
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const { data: productsData, error: productsError } = await supabase
         .from('products')
@@ -230,11 +276,7 @@ export function Dashboard() {
 
       if (salesError) throw salesError;
 
-      const { data: purchasesData, error: purchasesError } = await supabase
-        .from('stock_purchases')
-        .select('product_id, total_cost');
 
-      if (purchasesError) throw purchasesError;
 
       const salesByProduct = salesData.reduce((acc, item) => {
         if (!acc[item.product_id]) {
@@ -245,13 +287,7 @@ export function Dashboard() {
         return acc;
       }, {} as Record<string, { revenue: number; quantity: number }>);
 
-      const costByProduct = purchasesData.reduce((acc, purchase) => {
-        if (!acc[purchase.product_id]) {
-          acc[purchase.product_id] = 0;
-        }
-        acc[purchase.product_id] += parseFloat(purchase.total_cost);
-        return acc;
-      }, {} as Record<string, number>);
+
 
       const totalRevenue = Object.values(salesByProduct).reduce(
         (sum, item) => sum + item.revenue,
@@ -308,72 +344,28 @@ export function Dashboard() {
       };
       setAllMetrics(allTimeMetrics);
       setFilteredMetrics(allTimeMetrics);
-      
+
       // Check for low stock and send notifications
       const stockItems = (productsData || []).map(product => ({
         name: product.name,
         currentStock: product.current_stock,
-        lowStockThreshold: product.name === 'Energy Drinks' ? 5 : 
-                          product.name === 'Pop Shots' ? 12 : 
-                          product.name === 'Ice-Cream' ? 10 : 0
+        lowStockThreshold: product.name === 'Energy Drinks' ? 5 :
+          product.name === 'Pop Shots' ? 12 :
+            product.name === 'Ice-Cream' ? 10 : 0
       }));
-      
+
       await checkLowStock(stockItems);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [checkLowStock]);
 
-  // Date filtering helper functions
-  const isToday = (date: string) => {
-    const today = new Date();
-    const saleDate = new Date(date);
-    
-    // Normalize both dates to start of day for comparison
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const saleDateStart = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate());
-    
-    return saleDateStart.getTime() === todayStart.getTime();
-  };
 
-  const isYesterday = (date: string) => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const saleDate = new Date(date);
-    
-    // Normalize both dates to start of day for comparison
-    const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-    const saleDateStart = new Date(saleDate.getFullYear(), saleDate.getMonth(), saleDate.getDate());
-    
-    const isMatch = saleDateStart.getTime() === yesterdayStart.getTime();
-    
-    if (isMatch) {
-      console.log('Yesterday match found:', {
-        saleDate: date,
-        saleDateStart: saleDateStart.toISOString(),
-        yesterdayStart: yesterdayStart.toISOString()
-      });
-    }
-    
-    return isMatch;
-  };
-
-  const filterSalesByDate = (sales: RecentSale[], filter: 'today' | 'yesterday' | 'all') => {
-    switch (filter) {
-      case 'today':
-        return sales.filter(sale => isToday(sale.sale_date));
-      case 'yesterday':
-        return sales.filter(sale => isYesterday(sale.sale_date));
-      case 'all':
-      default:
-        return sales;
-    }
-  };
 
   // Fetch filtered metrics and products based on date filter
-  const fetchFilteredData = async (filter: 'today' | 'yesterday' | 'all') => {
+  const fetchFilteredData = useCallback(async (filter: 'today' | 'yesterday' | 'all') => {
     if (filter === 'all') {
       // Calculate revenue for all products
       const productsWithRevenue = products.map((product) => {
@@ -384,9 +376,9 @@ export function Dashboard() {
           revenue: revenue,
         };
       });
-      
+
       setFilteredMetrics(allMetrics);
-      setFilteredProducts(productsWithRevenue as any);
+      setFilteredProducts(productsWithRevenue);
       return;
     }
 
@@ -411,7 +403,7 @@ export function Dashboard() {
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString()
       });
-      
+
       const { data: salesData } = await supabase
         .from('sales')
         .select('id, total_amount, sale_date')
@@ -423,15 +415,11 @@ export function Dashboard() {
         .from('sale_items')
         .select('product_id, quantity, unit_price, subtotal')
         .in('sale_id', salesData?.map(s => s.id) || []);
-        
+
       console.log(`Found ${salesData?.length || 0} sales and ${saleItemsData?.length || 0} sale items for ${filter} period`);
 
       // Fetch purchases for cost calculation using full ISO timestamps
-      const { data: purchasesData } = await supabase
-        .from('stock_purchases')
-        .select('product_id, total_cost')
-        .gte('purchase_date', startDate.toISOString())
-        .lte('purchase_date', endDate.toISOString());
+
 
       const filteredRevenue = salesData?.reduce((sum, sale) => sum + parseFloat(sale.total_amount), 0) || 0;
       const filteredUnitsSold = saleItemsData?.reduce((sum, item) => sum + item.quantity, 0) || 0;
@@ -469,24 +457,24 @@ export function Dashboard() {
     } catch (error) {
       console.error('Error fetching filtered data:', error);
     }
-  };
+  }, [allMetrics, products]);
 
   // Update filtered sales and metrics when date filter changes
   useEffect(() => {
     console.log('Date filter changed to:', dateFilter);
     console.log('Recent sales count:', recentSales.length);
-    
+
     const filtered = filterSalesByDate(recentSales, dateFilter);
     console.log('Filtered sales count:', filtered.length);
-    
+
     setFilteredSales(filtered);
     setCurrentPage(1); // Reset to first page when filter changes
     fetchFilteredData(dateFilter);
-  }, [recentSales, dateFilter, allMetrics, products]);
+  }, [recentSales, dateFilter, allMetrics, products, fetchFilteredData]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleEditProduct = (product: Product) => {
     setSelectedProduct(product);
@@ -540,8 +528,8 @@ export function Dashboard() {
           <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs sm:text-sm font-medium text-gray-600">
-                {dateFilter === 'today' ? 'Revenue Today' : 
-                 dateFilter === 'yesterday' ? 'Revenue Yesterday' : 'Total Revenue'}
+                {dateFilter === 'today' ? 'Revenue Today' :
+                  dateFilter === 'yesterday' ? 'Revenue Yesterday' : 'Total Revenue'}
               </span>
               <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
             </div>
@@ -553,8 +541,8 @@ export function Dashboard() {
           <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs sm:text-sm font-medium text-gray-600">
-                {dateFilter === 'today' ? 'Units Sold Today' : 
-                 dateFilter === 'yesterday' ? 'Units Sold Yesterday' : 'Total Units Sold'}
+                {dateFilter === 'today' ? 'Units Sold Today' :
+                  dateFilter === 'yesterday' ? 'Units Sold Yesterday' : 'Total Units Sold'}
               </span>
               <Package className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
             </div>
@@ -566,31 +554,28 @@ export function Dashboard() {
           <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2 sm:pb-0">
             <button
               onClick={() => setDateFilter('today')}
-              className={`px-3 py-2 sm:px-4 rounded-lg font-medium transition-colors text-sm sm:text-base whitespace-nowrap ${
-                dateFilter === 'today'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+              className={`px-3 py-2 sm:px-4 rounded-lg font-medium transition-colors text-sm sm:text-base whitespace-nowrap ${dateFilter === 'today'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
             >
               Today
             </button>
             <button
               onClick={() => setDateFilter('yesterday')}
-              className={`px-3 py-2 sm:px-4 rounded-lg font-medium transition-colors text-sm sm:text-base whitespace-nowrap ${
-                dateFilter === 'yesterday'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+              className={`px-3 py-2 sm:px-4 rounded-lg font-medium transition-colors text-sm sm:text-base whitespace-nowrap ${dateFilter === 'yesterday'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
             >
               Yesterday
             </button>
             <button
               onClick={() => setDateFilter('all')}
-              className={`px-3 py-2 sm:px-4 rounded-lg font-medium transition-colors text-sm sm:text-base whitespace-nowrap ${
-                dateFilter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+              className={`px-3 py-2 sm:px-4 rounded-lg font-medium transition-colors text-sm sm:text-base whitespace-nowrap ${dateFilter === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
             >
               All Time
             </button>
@@ -612,7 +597,7 @@ export function Dashboard() {
               onEdit={handleEditProduct}
               onView={handleViewProduct}
               showPeriodData={dateFilter !== 'all'}
-              revenue={(product as any).revenue || 0}
+              revenue={product.revenue || 0}
             />
           ))}
         </div>
@@ -620,7 +605,7 @@ export function Dashboard() {
         {filteredSales.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Sales</h2>
-            
+
             {/* Paginated Sales */}
             <div className="space-y-3">
               {filteredSales

@@ -11,8 +11,8 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onEdit, onView, showPeriodData = false, revenue = 0 }: ProductCardProps) {
 
-  const costPerUnit = product.cost_per_batch / product.units_per_batch;
-  const profitPerUnit = product.unit_selling_price - costPerUnit;
+
+
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-md transition-shadow">

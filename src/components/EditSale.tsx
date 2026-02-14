@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Save, Trash2 } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface SaleItem {
@@ -17,7 +17,6 @@ interface EditSaleProps {
 }
 
 export function EditSale({ saleId, saleDate, totalAmount, items, onSuccess, onCancel }: EditSaleProps) {
-  const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -115,7 +114,7 @@ export function EditSale({ saleId, saleDate, totalAmount, items, onSuccess, onCa
         <div className="flex gap-3">
           <button
             onClick={handleDelete}
-            disabled={deleting || loading}
+            disabled={deleting}
             className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Trash2 className="w-4 h-4" />
@@ -123,7 +122,7 @@ export function EditSale({ saleId, saleDate, totalAmount, items, onSuccess, onCa
           </button>
           <button
             onClick={onCancel}
-            disabled={deleting || loading}
+            disabled={deleting}
             className="flex-1 bg-gray-200 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-300 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel

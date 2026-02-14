@@ -1,5 +1,5 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { Capacitor } from '@capacitor/core';
+
 
 export interface StockItem {
   name: string;
@@ -14,11 +14,11 @@ export class NotificationService {
     'Pop Shots': 12,
     'Ice-Cream': 10
   };
-  
+
   // Track notification history to prevent spam
   private notificationHistory: { [key: string]: { count: number; lastSent: string } } = {};
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): NotificationService {
     if (!NotificationService.instance) {
@@ -31,7 +31,7 @@ export class NotificationService {
     try {
       // Request notification permissions
       const permission = await LocalNotifications.requestPermissions();
-      
+
       if (permission.display === 'granted') {
         console.log('Notification permissions granted');
       }
@@ -42,20 +42,20 @@ export class NotificationService {
 
   public async checkLowStock(items: StockItem[]): Promise<void> {
     const today = new Date().toDateString();
-    
+
     for (const item of items) {
       const threshold = this.stockThresholds[item.name];
-      
+
       if (threshold && item.currentStock <= threshold) {
         const itemKey = item.name;
         const history = this.notificationHistory[itemKey];
-        
+
         // Check if we should send notification
         const shouldSend = this.shouldSendNotification(itemKey, today);
-        
+
         if (shouldSend) {
           await this.sendLowStockNotification(item);
-          
+
           // Update notification history
           this.notificationHistory[itemKey] = {
             count: history ? history.count + 1 : 1,
@@ -65,18 +65,18 @@ export class NotificationService {
       }
     }
   }
-  
+
   private shouldSendNotification(itemName: string, today: string): boolean {
     const history = this.notificationHistory[itemName];
-    
+
     // If no history, send notification
     if (!history) return true;
-    
+
     // If last sent was not today, reset count and send
     if (history.lastSent !== today) {
       return true;
     }
-    
+
     // If sent today, only send if less than 2 times
     return history.count < 2;
   }
@@ -85,9 +85,9 @@ export class NotificationService {
     try {
       const threshold = this.stockThresholds[item.name];
       const message = `⚠️ Low Stock Alert: ${item.name} is running low! Only ${item.currentStock} left (threshold: ${threshold})`;
-      
+
       console.log(`Sending low stock notification for ${item.name}: ${message}`);
-      
+
       await LocalNotifications.schedule({
         notifications: [
           {

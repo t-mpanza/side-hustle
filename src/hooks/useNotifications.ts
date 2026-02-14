@@ -1,8 +1,10 @@
 import { useEffect, useCallback } from 'react';
 import { NotificationService, StockItem } from '../services/notificationService';
 
+const notificationService = NotificationService.getInstance();
+
 export const useNotifications = () => {
-  const notificationService = NotificationService.getInstance();
+
 
   useEffect(() => {
     // Initialize notifications when the hook is used
